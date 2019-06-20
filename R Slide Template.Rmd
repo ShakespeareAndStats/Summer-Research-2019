@@ -1,0 +1,75 @@
+---
+title: "Slide Title"
+author: "Your Name"
+date: "Today's Date"
+output: ioslides_presentation
+widescreen: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE)
+```
+
+
+
+```{r, echo=F, fig.width=7, fig.height=4, fig.align='center', message=FALSE, warning=FALSE}
+#load necessary packages
+library(ggformula)
+library(tidyverse)
+library(knitr)
+```
+
+## Slide 1 Title
+
+A numbered list
+
+1. Item one     
+2. Item two     
+3. Item three    
+
+## Slide 2 Title
+
+A bulleted list
+
+* Item one     
+* Item two     
+    -subitem 1   
+    -subitem 2
+* Item three    
+
+## Slide 3 Title
+
+A mathematical expression
+
+$Y=X\beta+\epsilon$
+
+For **bold font** use two asterisks.   
+
+For *italics* use one askerisk. 
+
+## Slide 4 Title
+
+R Code
+
+```{r, fig.height=3, fig.width=6}
+data(mtcars)
+gf_histogram(data=mtcars, ~mpg, color = "blue")
+```
+
+## Slide 5 Title {.smaller}
+
+More R code (use echo=FALSE to suppress R code)
+
+```{r, echo=FALSE}
+m <- lm(data=mtcars, mpg~wt)
+summary(m)
+```
+
+
+## Silde 6 title
+
+To insert an external image, make sure image is in the same directory as the side .Rmd file. 
+
+```{r , out.width = '100%', out.height='100%', include=FALSE}
+knitr::include_graphics("image.jpg")
+```
