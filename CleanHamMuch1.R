@@ -7,12 +7,19 @@ library(tidyverse)
 library(gutenbergr)
 
 #This Hamlet is not the right one. The one I've been using is "The Tragedy of Hamlet, Prince of Denmark" or gutenberg_download(1122). For some reason, either won't work. Thus, I also cannot get the cleaned data to work.
-titles <- c(
-  "Hamlet",
-  "Much Ado About Nothing"
-)
-books <- gutenberg_works(title %in% titles) %>%
-  gutenberg_download(meta_fields = "title") %>%
+#titles <- c(
+#  "Hamlet",
+#  "Much Ado about Nothing"
+#)
+#books <- gutenberg_works(title %in% titles) %>%
+#  gutenberg_download(meta_fields = "title") %>%
+#  mutate(document = row_number())
+#books
+
+
+# It seems to work if we read in the titles using their id numbers
+# we need to add meta_fields="title" so it understands when we reference title later on.-AJS
+books <-gutenberg_download(c(1122, 1519), meta_fields = "title") %>%
   mutate(document = row_number())
 books
 
@@ -73,13 +80,15 @@ library(glmnet)
 library(doParallel)
 registerDoParallel(cores = 8)
 
-is_ham <- books_joined$title == "Hamlet"
+#I changed the title to match the full title in the version we're using.-AJS
+is_ham <- books_joined$title == "The Tragedy of Hamlet, Prince of Denmark"
 model <- cv.glmnet(sparse_words, is_ham,
                    family = "binomial",
                    parallel = TRUE, keep = TRUE
 )
 
 #Professor, I do not recommend running either of these plots. They take forever on my computer and I have no idea what they mean anyway.
+#thanks for the warning-AJS
 plot(model)
 
 plot(model$glmnet.fit)
@@ -91,11 +100,13 @@ coefs <- model$glmnet.fit %>%
   filter(lambda == model$lambda.1se)
 
 #This I simply cannot get to work. I always get some "stopifnot" error.
+
+#I removed an extra 2 in line 104 (it read fct_reorder2(term, estimate))-AJS
 coefs %>%
   group_by(estimate > 0) %>%
   top_n(10, abs(estimate)) %>%
   ungroup() %>%
-  ggplot(aes(fct_reorder2(term, estimate), estimate, fill = estimate > 0)) +
+  ggplot(aes(fct_reorder(term, estimate), estimate, fill = estimate > 0)) +
   geom_col(alpha = 0.8, show.legend = FALSE) +
   coord_flip() +
   labs(
