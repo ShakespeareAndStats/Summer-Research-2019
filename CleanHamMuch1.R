@@ -1,12 +1,15 @@
 #Modified blog post code
 #HamMuch1 copy, taking things out
 
+#Hi Professor. So, yeah, I can get a lot of this to work with just "Hamlet", but that isn't what I want. There are also things that I can't get to work even with the simple, given Hamlet.
+
 library(tidyverse)
 library(gutenbergr)
 
+#This Hamlet is not the right one. The one I've been using is "The Tragedy of Hamlet, Prince of Denmark" or gutenberg_download(1122). For some reason, either won't work. Thus, I also cannot get the cleaned data to work.
 titles <- c(
   "Hamlet",
-  "Much Ado About Nothing"
+  "Pride and Prejudice"
 )
 books <- gutenberg_works(title %in% titles) %>%
   gutenberg_download(meta_fields = "title") %>%
@@ -68,7 +71,7 @@ books_joined <- data_frame(document = word_rownames) %>%
 
 library(glmnet)
 library(doParallel)
-registerDoParallel(cores = 8)
+registerDoParallel(cores = 3)
 
 is_ham <- books_joined$title == "Hamlet"
 model <- cv.glmnet(sparse_words, is_ham,
@@ -76,6 +79,7 @@ model <- cv.glmnet(sparse_words, is_ham,
                    parallel = TRUE, keep = TRUE
 )
 
+#Professor, I do not recommend running either of these plots. They take forever on my computer and I have no idea what they mean anyway.
 plot(model)
 
 plot(model$glmnet.fit)
@@ -86,6 +90,7 @@ coefs <- model$glmnet.fit %>%
   tidy() %>%
   filter(lambda == model$lambda.1se)
 
+#This I simply cannot get to work. I always get some "stopifnot" error.
 coefs %>%
   group_by(estimate > 0) %>%
   top_n(10, abs(estimate)) %>%
@@ -96,7 +101,7 @@ coefs %>%
   labs(
     x = NULL,
     title = "Coefficients that increase/decrease probability the most",
-    subtitle = "A document mentioning Martians is unlikely to be written by Jane Austen"
+    subtitle = "A document mentioning Darcy is unlikely to be written by Shakespeare"
   )
 
 intercept <- coefs %>%
@@ -133,7 +138,7 @@ comment_classes %>%
   ) +
   labs(
     title = "ROC curve for text classification using regularized regression",
-    subtitle = "Predicting whether text was written by Jane Austen or H.G. Wells"
+    subtitle = "Predicting whether text was written by Shakespeare or Jane Austen"
   )
 
 comment_classes %>%
@@ -142,8 +147,8 @@ comment_classes %>%
 comment_classes %>%
   mutate(
     prediction = case_when(
-      probability > 0.5 ~ "Pride and Prejudice",
-      TRUE ~ "The War of the Worlds"
+      probability > 0.5 ~ "Hamlet",
+      TRUE ~ "Pride and Prejudice"
     ),
     prediction = as.factor(prediction)
   ) %>%
