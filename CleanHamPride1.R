@@ -4,7 +4,6 @@
 #Hi Professor. So, yeah, I can get a lot of this to work with just "Hamlet", but that isn't what I want. There are also things that I can't get to work even with the simple, given Hamlet.
 
 library(tidyverse)
-library(gutenbergr)
 
 #This Hamlet is not the right one. The one I've been using is "The Tragedy of Hamlet, Prince of Denmark" or gutenberg_download(1122). For some reason, either won't work. Thus, I also cannot get the cleaned data to work.
 #titles <- c(
@@ -74,8 +73,6 @@ tidy_books %>%
   )  
 
 library(rsample)
-
-
 
 books_split <- books %>%
   select(document) %>%
@@ -181,7 +178,7 @@ comment_classes %>%
   mutate(
     prediction = case_when(
       probability > 0.5 ~ "Pride and Prejudice",
-      TRUE ~ "The Tragedy of Hamlet, Prince of Denmark"
+      TRUE ~ "Hamlet"
     ),
     prediction = as.factor(prediction)
   ) %>%
@@ -190,7 +187,7 @@ comment_classes %>%
 comment_classes %>%
   filter(
     probability > .8,
-    title == "The Tragedy of Hamlet, Prince of Denmark"
+    title == "Hamlet"
   ) %>%
   sample_n(10) %>%
   inner_join(books %>%

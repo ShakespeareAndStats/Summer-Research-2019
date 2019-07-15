@@ -5,7 +5,7 @@ library(gutenbergr)
 
 titles <- c(
   "Hamlet",
-  "Much Ado About Nothing"
+  "Much Ado about Nothing"
 )
 books <- gutenberg_works(title %in% titles) %>%
   gutenberg_download(meta_fields = "title") %>%
@@ -95,7 +95,7 @@ coefs %>%
   labs(
     x = NULL,
     title = "Coefficients that increase/decrease probability the most",
-    subtitle = "A document mentioning Martians is unlikely to be written by Jane Austen"
+    subtitle = "A document mentioning love is unlikely to be a tragedy"
   )
 
 intercept <- coefs %>%
@@ -132,7 +132,7 @@ comment_classes %>%
   ) +
   labs(
     title = "ROC curve for text classification using regularized regression",
-    subtitle = "Predicting whether text was written by Jane Austen or H.G. Wells"
+    subtitle = "Predicting whether text was Hamlet or Much Ado"
   )
 
 comment_classes %>%
@@ -141,8 +141,8 @@ comment_classes %>%
 comment_classes %>%
   mutate(
     prediction = case_when(
-      probability > 0.5 ~ "Pride and Prejudice",
-      TRUE ~ "The War of the Worlds"
+      probability > 0.5 ~ "Hamlet",
+      TRUE ~ "Much Ado about Nothing"
     ),
     prediction = as.factor(prediction)
   ) %>%
@@ -151,9 +151,9 @@ comment_classes %>%
 comment_classes %>%
   filter(
     probability > .8,
-    title == "The War of the Worlds"
+    title == "Much Ado about Nothing"
   ) %>%
-  sample_n(10) %>%
+  sample_n(8) %>%
   inner_join(books %>%
                select(document, text)) %>%
   select(probability, text)
@@ -161,7 +161,7 @@ comment_classes %>%
 comment_classes %>%
   filter(
     probability < .3,
-    title == "Pride and Prejudice"
+    title == "Hamlet"
   ) %>%
   sample_n(10) %>%
   inner_join(books %>%

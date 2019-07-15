@@ -7,14 +7,41 @@ library(tidyverse)
 library(gutenbergr)
 
 #This Hamlet is not the right one. The one I've been using is "The Tragedy of Hamlet, Prince of Denmark" or gutenberg_download(1122). For some reason, either won't work. Thus, I also cannot get the cleaned data to work.
-titles <- c(
-  "Hamlet",
-  "Pride and Prejudice"
-)
-books <- gutenberg_works(title %in% titles) %>%
-  gutenberg_download(meta_fields = "title") %>%
-  mutate(document = row_number())
-books
+#titles <- c(
+#  "Hamlet",
+#  "Much Ado about Nothing"
+#)
+#books <- gutenberg_works(title %in% titles) %>%
+#  gutenberg_download(meta_fields = "title") %>%
+#  mutate(document = row_number())
+#books
+
+library(gutenbergr)
+full_text <- gutenberg_download(1122)
+
+cleaned_text0 <- full_text[-c(1:279, 1290:1297, 2189:2196, 3313:3320, 3534:3541, 3627:3634, 3930:3937, 3996:3403, 4238:4245, 5145:5152),]
+
+cleaned_text1 <- cleaned_text0
+
+names <- c("Ber", "Fran", "Mar", "Hor", "King", "Queen", "Cor", "Volt", "Laer", "Pol", "Ham", "Oph", "Ghost", "Rey", "Ros", "Guil", "For", "Capt", "Sailor", "Mess", "Clown", "Osr")
+shakes_stop <- c("thee", "thou", "thy", "tis", "Tis", "hath", "hast", "Enter", "twill", "art", "thyself", "ere", "whence", "Exeunt", "twixt", "Exit", "thine", "canst", "oâer", "isât", "onât", "wherefore", "wither", "wilt", "shalt", "shouldst", "wouldst", "nay", "yea", "Ay", "ay", "twere", "thence", "ye", "twas", "prithee", "doth", "th", "hither", "Act", "ACT", "Scene","II", "III", "IV", "V", "VI", "VII", "1")
+
+library(tm)
+cleaned_text1$text <- unlist(lapply(cleaned_text1$text, FUN=removeWords, words=names))
+cleaned_text1$text <- unlist(lapply(cleaned_text1$text, FUN=removeWords, words=shakes_stop))
+cleaned_text1$title <- "Hamlet"
+
+Pride <- gutenberg_download(1342)
+Pride$title <- "Pride and Prejudice"
+
+books <- rbind(cleaned_text1, Pride)
+books$document <- 1:nrow(books)
+
+# It seems to work if we read in the titles using their id numbers
+# we need to add meta_fields="title" so it understands when we reference title later on.-AJS
+#books <-gutenberg_download(c(1122, 1342), meta_fields = "title") %>%
+#  mutate(document = row_number())
+#books
 
 library(tidytext)
 
@@ -48,6 +75,8 @@ tidy_books %>%
 
 library(rsample)
 
+
+
 books_split <- books %>%
   select(document) %>%
   initial_split()
@@ -73,6 +102,7 @@ library(glmnet)
 library(doParallel)
 registerDoParallel(cores = 3)
 
+#I changed the title to match the full title in the version we're using.-AJS
 is_ham <- books_joined$title == "Hamlet"
 model <- cv.glmnet(sparse_words, is_ham,
                    family = "binomial",
@@ -80,9 +110,10 @@ model <- cv.glmnet(sparse_words, is_ham,
 )
 
 #Professor, I do not recommend running either of these plots. They take forever on my computer and I have no idea what they mean anyway.
-plot(model)
+#thanks for the warning-AJS
+#plot(model)
 
-plot(model$glmnet.fit)
+#plot(model$glmnet.fit)
 
 library(broom)
 
@@ -91,17 +122,19 @@ coefs <- model$glmnet.fit %>%
   filter(lambda == model$lambda.1se)
 
 #This I simply cannot get to work. I always get some "stopifnot" error.
+
+#I removed an extra 2 in line 104 (it read fct_reorder2(term, estimate))-AJS
 coefs %>%
   group_by(estimate > 0) %>%
   top_n(10, abs(estimate)) %>%
   ungroup() %>%
-  ggplot(aes(fct_reorder2(term, estimate), estimate, fill = estimate > 0)) +
+  ggplot(aes(fct_reorder(term, estimate), estimate, fill = estimate > 0)) +
   geom_col(alpha = 0.8, show.legend = FALSE) +
   coord_flip() +
   labs(
     x = NULL,
     title = "Coefficients that increase/decrease probability the most",
-    subtitle = "A document mentioning Darcy is unlikely to be written by Shakespeare"
+    subtitle = "A document mentioning Martians is unlikely to be written by Jane Austen"
   )
 
 intercept <- coefs %>%
@@ -138,7 +171,7 @@ comment_classes %>%
   ) +
   labs(
     title = "ROC curve for text classification using regularized regression",
-    subtitle = "Predicting whether text was written by Shakespeare or Jane Austen"
+    subtitle = "Predicting whether text was written by Jane Austen or H.G. Wells"
   )
 
 comment_classes %>%
@@ -147,8 +180,8 @@ comment_classes %>%
 comment_classes %>%
   mutate(
     prediction = case_when(
-      probability > 0.5 ~ "Hamlet",
-      TRUE ~ "Pride and Prejudice"
+      probability > 0.5 ~ "Pride and Prejudice",
+      TRUE ~ "The Tragedy of Hamlet, Prince of Denmark"
     ),
     prediction = as.factor(prediction)
   ) %>%
@@ -157,7 +190,7 @@ comment_classes %>%
 comment_classes %>%
   filter(
     probability > .8,
-    title == "The War of the Worlds"
+    title == "The Tragedy of Hamlet, Prince of Denmark"
   ) %>%
   sample_n(10) %>%
   inner_join(books %>%

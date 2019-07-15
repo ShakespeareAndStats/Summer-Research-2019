@@ -1,7 +1,7 @@
 ---
-title: "Slide Title"
-author: "Your Name"
-date: "Today's Date"
+title: "Summer Research Progress, Pt 1"
+author: "Johanna Kopecky"
+date: "16 July 2019"
 output: ioslides_presentation
 widescreen: true
 ---
@@ -17,59 +17,178 @@ knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE)
 library(ggformula)
 library(tidyverse)
 library(knitr)
+library(tidyverse)
+library(tidytext)
 ```
 
-## Slide 1 Title
+## Overview
 
-A numbered list
 
-1. Item one     
-2. Item two     
-3. Item three    
+* Preparing the Data
+* Word Frequency
 
-## Slide 2 Title
+    -With Stop Words
+    
+    -Without Stop Words
+    
+* Positive vs Negative Words
+* Two-word Phrases
+* Moving Forward/Next Time
 
-A bulleted list
 
-* Item one     
-* Item two     
-    -subitem 1   
-    -subitem 2
-* Item three    
+## Preparing the Data
 
-## Slide 3 Title
 
-A mathematical expression
+Using the Project Gutenberg database and the gutenbergr package, we are able to download the entirety of Hamlet.
 
-$Y=X\beta+\epsilon$
-
-For **bold font** use two asterisks.   
-
-For *italics* use one askerisk. 
-
-## Slide 4 Title
-
-R Code
-
-```{r, fig.height=3, fig.width=6}
-data(mtcars)
-gf_histogram(data=mtcars, ~mpg, color = "blue")
+```{r}
+library(gutenbergr)
+full_text <- gutenberg_download(1122)
 ```
 
-## Slide 5 Title {.smaller}
+## Preparing the Data Cont.
 
-More R code (use echo=FALSE to suppress R code)
+Things we do not want:
+
+* Introductions and disclaimers
+
+* Name abbreviations (e.g. Ham, Hor, Ber)
+
+* "Stop words" of Renaissance nature
+
+
+We make lists of these components and remove them from the master file.
+
+
+## Preparing the Data Cont.
+
+```{r}
+cleaned_text0 <- full_text[-c(1:279, 1290:1297, 2189:2196, 3313:3320, 3534:3541, 3627:3634, 3930:3937, 3996:3403, 4238:4245, 5145:5152),]
+
+cleaned_text1 <- cleaned_text0
+
+names <- c("Ber", "Fran", "Mar", "Hor", "King", "Queen", "Cor", "Volt", "Laer", "Pol", "Ham", "Oph", "Ghost", "Rey", "Ros", "Guil", "For", "Capt", "Sailor", "Mess", "Clown", "Osr")
+shakes_stop <- c("thee", "thou", "thy", "tis", "Tis", "hath", "hast", "Enter", "twill", "art", "thyself", "ere", "whence", "Exeunt", "twixt", "Exit", "thine", "canst", "o’er", "is’t", "on’t", "wherefore", "wither", "wilt", "shalt", "shouldst", "wouldst", "nay", "yea", "Ay", "ay", "twere", "thence", "ye", "twas", "prithee", "doth", "th", "hither", "Act", "ACT", "Scene","II", "III", "IV", "V", "VI", "VII", "1")
+
+library(tm)
+cleaned_text1$text <- unlist(lapply(cleaned_text1$text, FUN=removeWords, words=names))
+cleaned_text1$text <- unlist(lapply(cleaned_text1$text, FUN=removeWords, words=shakes_stop))
+
+```
+
+Now the data is clean for us to use.
+
+
+## Word Frequency
+
+We are interested in the most frequently used words in the text.
+We use the tidy_book command to identify this.
 
 ```{r, echo=FALSE}
-m <- lm(data=mtcars, mpg~wt)
-summary(m)
+tidy_book <- cleaned_text1 %>%
+  mutate(line = row_number()) %>%
+  unnest_tokens(word, text)
+
+tidy_book %>%
+  count(word, sort = TRUE)
 ```
 
 
-## Silde 6 title
+## Word Frequency Cont.
 
-To insert an external image, make sure image is in the same directory as the side .Rmd file. 
+There are still stop words, so we take those out and run this again.
 
-```{r , out.width = '100%', out.height='100%', include=FALSE}
-knitr::include_graphics("image.jpg")
+```{r, echo=FALSE}
+get_stopwords()
+get_stopwords(source = "smart")
 ```
+
+## Word Frequency Cont.
+Now we see a graph of the top 20 words and their frequency.
+```{r, ,echo=FALSE}
+tidy_book %>%
+  anti_join(get_stopwords(source = "smart")) %>%
+  count(word, sort = TRUE) %>%
+  top_n(20) %>%
+  ggplot(aes(fct_reorder(word, n), n)) +
+  geom_col() +
+  coord_flip()
+```
+
+## Positive vs Negative Words
+
+We read in an algorithm to assign each word a negative or positive correlation, and a strength associated with each.
+```{r}
+get_sentiments("afinn")
+get_sentiments("bing")
+get_sentiments("loughran")
+#get_sentiments("nrc")
+```
+
+
+## Positive vs Negative Words Cont.
+This tells us how many positive and negative words there are in the text.
+```{r}
+tidy_book %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(sentiment, sort = TRUE)
+```
+
+## Positive vs Negative Words Cont.
+Now we see graphs of the top ten words of negative and positive correlation side-by-side.
+
+```{r, echo=FALSE}
+tidy_book %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(sentiment, word, sort = TRUE) %>%
+  group_by(sentiment) %>%
+  top_n(10) %>%
+  ungroup %>%
+  ggplot(aes(fct_reorder(word, n),
+             n, 
+             fill = sentiment)) +
+  geom_col() +
+  coord_flip() +
+  facet_wrap(~ sentiment, scales = "free")
+```
+
+## Two-Word Phrases
+
+We first get the data into an ideal measuring format.
+
+```{r, echo=FALSE}
+tidy_ngram <- cleaned_text1 %>%
+  unnest_tokens(bigram, text, token = "ngrams", n = 2)
+tidy_ngram
+```
+
+##Two-Word Phrases Cont.
+We see the data, but it still contains stop words.
+
+```{r, echo=FALSE}
+tidy_ngram %>%
+  count(bigram, sort = TRUE)
+```
+
+## Two-Word Phrases Cont.
+
+We remove the stop words and run it again.
+
+```{r, echo=FALSE}
+tidy_ngram %>%
+  separate(bigram, c("word1", "word2"), sep = " ") %>%
+  filter(!word1 %in% stop_words$word,
+         !word2 %in% stop_words$word) %>%
+  count(word1, word2, sort = TRUE)
+```
+
+## Moving Forward/Next Time
+
+* Word frequency comparing two works 
+* Machine learning to identify one of two works
+    - Word/book probability
+* ROC curve
+* Probability of identification *by line*
+
+
+## Questions?

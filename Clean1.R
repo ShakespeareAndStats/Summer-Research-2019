@@ -1,4 +1,5 @@
 #Just trying out some stuff I found in the book
+#25.6.19 this is all Silge's
 
 library(dplyr)
 library(tidyr)

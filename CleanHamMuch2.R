@@ -1,5 +1,7 @@
 #HamMuch2 copy, taking things out
 
+library(tidyverse)
+library(tidytext)
 library(gutenbergr)
 full_text <- gutenberg_download(1122)
 
