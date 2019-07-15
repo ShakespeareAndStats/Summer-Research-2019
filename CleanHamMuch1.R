@@ -1,4 +1,4 @@
-#Modified blog post code
+#Modified blog post code jtk
 #HamMuch1 copy, taking things out
 
 #Hi Professor. So, yeah, I can get a lot of this to work with just "Hamlet", but that isn't what I want. There are also things that I can't get to work even with the simple, given Hamlet.
