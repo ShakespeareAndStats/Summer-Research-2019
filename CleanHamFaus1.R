@@ -1,46 +1,36 @@
 #Modified blog post code
-#HamMuch1 copy, taking things out
-
-#Hi Professor. So, yeah, I can get a lot of this to work with just "Hamlet", but that isn't what I want. There are also things that I can't get to work even with the simple, given Hamlet.
+#Same as CleanPride1, but with Doctor Faustus 
 
 library(tidyverse)
-
-#This Hamlet is not the right one. The one I've been using is "The Tragedy of Hamlet, Prince of Denmark" or gutenberg_download(1122). For some reason, either won't work. Thus, I also cannot get the cleaned data to work.
-#titles <- c(
-#  "Hamlet",
-#  "Much Ado about Nothing"
-#)
-#books <- gutenberg_works(title %in% titles) %>%
-#  gutenberg_download(meta_fields = "title") %>%
-#  mutate(document = row_number())
-#books
-
 library(gutenbergr)
-full_text <- gutenberg_download(1122)
+full_ham <- gutenberg_download(1122)
 
-cleaned_text0 <- full_text[-c(1:279, 1290:1297, 2189:2196, 3313:3320, 3534:3541, 3627:3634, 3930:3937, 3996:3403, 4238:4245, 5145:5152),]
+cleaned_ham0 <- full_ham[-c(1:279, 1290:1297, 2189:2196, 3313:3320, 3534:3541, 3627:3634, 3930:3937, 3996:3403, 4238:4245, 5145:5152),]
 
-cleaned_text1 <- cleaned_text0
+cleaned_ham1 <- cleaned_ham0
 
 names <- c("Ber", "Fran", "Mar", "Hor", "King", "Queen", "Cor", "Volt", "Laer", "Pol", "Ham", "Oph", "Ghost", "Rey", "Ros", "Guil", "For", "Capt", "Sailor", "Mess", "Clown", "Osr")
 shakes_stop <- c("thee", "thou", "thy", "tis", "Tis", "hath", "hast", "Enter", "twill", "art", "thyself", "ere", "whence", "Exeunt", "twixt", "Exit", "thine", "canst", "o'er", "is't", "on't", "wherefore", "wither", "wilt", "shalt", "shouldst", "wouldst", "nay", "yea", "Ay", "ay", "twere", "thence", "ye", "twas", "prithee", "doth", "th", "hither", "Act", "ACT", "Scene","II", "III", "IV", "V", "VI", "VII", "1")
 
 library(tm)
-cleaned_text1$text <- unlist(lapply(cleaned_text1$text, FUN=removeWords, words=names))
-cleaned_text1$text <- unlist(lapply(cleaned_text1$text, FUN=removeWords, words=shakes_stop))
-cleaned_text1$title <- "Hamlet"
+cleaned_ham1$text <- unlist(lapply(cleaned_ham1$text, FUN=removeWords, words=names))
+cleaned_ham1$text <- unlist(lapply(cleaned_ham1$text, FUN=removeWords, words=shakes_stop))
+cleaned_ham1$title <- "Hamlet"
 
-Pride <- gutenberg_download(1342)
-Pride$title <- "Pride and Prejudice"
+full_faus <- gutenberg_download(779)
 
-books <- rbind(cleaned_text1, Pride)
+cleaned_faus0 <- full_faus[-c(1:60, 2122:3065),]
+
+cleaned_faus1 <- cleaned_faus0
+
+cleaned_faus1$text <- unlist(lapply(cleaned_faus1$text, FUN=removeWords, words=shakes_stop))
+
+cleaned_faus1$title <- "The Tragical History of Doctor Faustus"
+
+#NEED TO CODE
+
+books <- rbind(cleaned_ham1, cleaned_faus1)
 books$document <- 1:nrow(books)
-
-# It seems to work if we read in the titles using their id numbers
-# we need to add meta_fields="title" so it understands when we reference title later on.-AJS
-#books <-gutenberg_download(c(1122, 1342), meta_fields = "title") %>%
-#  mutate(document = row_number())
-#books
 
 library(tidytext)
 
@@ -69,7 +59,7 @@ tidy_books %>%
   labs(
     x = NULL, y = "Word count",
     title = "Most frequent words after removing stop words",
-    subtitle = "Words like 'no' and 'must' both appear but other words are quite different"
+    subtitle = "Words like 'said' occupy similar ranks but other words are quite different"
   )  
 
 library(rsample)
@@ -131,7 +121,7 @@ coefs %>%
   labs(
     x = NULL,
     title = "Coefficients that increase/decrease probability the most",
-    subtitle = "A document mentioning Denmark is unlikely to be written by Jane Austen"
+    subtitle = "A document mentioning Martians is unlikely to be written by Jane Austen"
   )
 
 intercept <- coefs %>%
@@ -168,7 +158,7 @@ comment_classes %>%
   ) +
   labs(
     title = "ROC curve for text classification using regularized regression",
-    subtitle = "Predicting whether text was written by William Shakespeare or Jane Austen"
+    subtitle = "Predicting whether text was written by William Shakespeare or Christopher Marlowe"
   )
 
 comment_classes %>%
@@ -177,7 +167,7 @@ comment_classes %>%
 comment_classes %>%
   mutate(
     prediction = case_when(
-      probability > 0.5 ~ "Pride and Prejudice",
+      probability > 0.5 ~ "The Tragical History of Doctor Faustus",
       TRUE ~ "Hamlet"
     ),
     prediction = as.factor(prediction)
@@ -197,7 +187,7 @@ comment_classes %>%
 comment_classes %>%
   filter(
     probability < .3,
-    title == "Pride and Prejudice"
+    title == "The Tragical History of Doctor Faustus"
   ) %>%
   sample_n(10) %>%
   inner_join(books %>%
