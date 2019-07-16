@@ -162,7 +162,8 @@ tidy_ngram <- cleaned_text1 %>%
 tidy_ngram
 ```
 
-##Two-Word Phrases Cont.
+## Two-Word Phrases Cont.
+
 We see the data, but it still contains stop words.
 
 ```{r, echo=FALSE}
