@@ -1,20 +1,7 @@
 #Modified blog post code
 #HamMuch1 copy, taking things out
 
-#Hi Professor. So, yeah, I can get a lot of this to work with just "Hamlet", but that isn't what I want. There are also things that I can't get to work even with the simple, given Hamlet.
-
 library(tidyverse)
-
-#This Hamlet is not the right one. The one I've been using is "The Tragedy of Hamlet, Prince of Denmark" or gutenberg_download(1122). For some reason, either won't work. Thus, I also cannot get the cleaned data to work.
-#titles <- c(
-#  "Hamlet",
-#  "Much Ado about Nothing"
-#)
-#books <- gutenberg_works(title %in% titles) %>%
-#  gutenberg_download(meta_fields = "title") %>%
-#  mutate(document = row_number())
-#books
-
 library(gutenbergr)
 full_text <- gutenberg_download(1122)
 
@@ -35,12 +22,6 @@ Pride$title <- "Pride and Prejudice"
 
 books <- rbind(cleaned_text1, Pride)
 books$document <- 1:nrow(books)
-
-# It seems to work if we read in the titles using their id numbers
-# we need to add meta_fields="title" so it understands when we reference title later on.-AJS
-#books <-gutenberg_download(c(1122, 1342), meta_fields = "title") %>%
-#  mutate(document = row_number())
-#books
 
 library(tidytext)
 
@@ -99,7 +80,6 @@ library(glmnet)
 library(doParallel)
 registerDoParallel(cores = 3)
 
-#I changed the title to match the full title in the version we're using.-AJS
 is_ham <- books_joined$title == "Hamlet"
 model <- cv.glmnet(sparse_words, is_ham,
                    family = "binomial",
@@ -118,9 +98,6 @@ coefs <- model$glmnet.fit %>%
   tidy() %>%
   filter(lambda == model$lambda.1se)
 
-#This I simply cannot get to work. I always get some "stopifnot" error.
-
-#I removed an extra 2 in line 104 (it read fct_reorder2(term, estimate))-AJS
 coefs %>%
   group_by(estimate > 0) %>%
   top_n(10, abs(estimate)) %>%

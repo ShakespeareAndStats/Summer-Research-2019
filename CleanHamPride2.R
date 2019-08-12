@@ -1,35 +1,27 @@
-#Modified blog post code
-#Same as CleanPride1, but with Doctor Faustus 
+#CleanHamPride1, but with proper names taken out too. 
 
 library(tidyverse)
 library(gutenbergr)
-full_ham <- gutenberg_download(1122)
+full_text <- gutenberg_download(1122)
 
-cleaned_ham0 <- full_ham[-c(1:279, 1290:1297, 2189:2196, 3313:3320, 3534:3541, 3627:3634, 3930:3937, 3996:3403, 4238:4245, 5145:5152),]
+cleaned_text0 <- full_text[-c(1:279, 1290:1297, 2189:2196, 3313:3320, 3534:3541, 3627:3634, 3930:3937, 3996:3403, 4238:4245, 5145:5152),]
 
-cleaned_ham1 <- cleaned_ham0
+cleaned_text1 <- cleaned_text0
 
-ham_names <- c("Ber", "Fran", "Mar", "Hor", "King", "Queen", "Cor", "Volt", "Laer", "Pol", "Ham", "Oph", "Ghost", "Rey", "Ros", "Guil", "For", "Capt", "Sailor", "Mess", "Clown", "Osr")
-shakes_stop <- c("thee", "thou", "thy", "tis", "Tis", "hath", "hast", "Enter", "twill", "art", "thyself", "ere", "whence", "Exeunt", "twixt", "Exit", "thine", "canst", "o'er", "is't", "on't", "wherefore", "wither", "wilt", "shalt", "shouldst", "wouldst", "nay", "yea", "Ay", "ay", "twere", "thence", "ye", "twas", "prithee", "doth", "th", "hither", "Act", "ACT", "Scene","II", "III", "IV", "V", "VI", "VII", "1", "Re-enter")
+names_full <- c("Denmark", "Elsinore", "Norway", "Claudius", "Marcellus", "Hamlet", "Polonius", "Horatio", "Laertes", "Voltemand", "Cornelius", "Rosencrantz", "Guildenstern", "Osric", "Bernardo", "Francisco", "Reynaldo", "Fortinbras", "Gertrude", "Ophelia")
+names_abrv <- c("Ber", "Fran", "Mar", "Hor", "King", "Queen", "Cor", "Volt", "Laer", "Pol", "Ham", "Oph", "Ghost", "Rey", "Ros", "Guil", "For", "Capt", "Sailor", "Mess", "Clown", "Osr")
+shakes_stop <- c("thee", "thou", "thy", "tis", "Tis", "hath", "hast", "Enter", "twill", "art", "thyself", "ere", "whence", "Exeunt", "twixt", "Exit", "thine", "canst", "o'er", "is't", "on't", "wherefore", "wither", "wilt", "shalt", "shouldst", "wouldst", "nay", "yea", "Ay", "ay", "twere", "thence", "ye", "twas", "prithee", "doth", "th", "hither", "Act", "ACT", "Scene","II", "III", "IV", "V", "VI", "VII", "1")
 
 library(tm)
-cleaned_ham1$text <- unlist(lapply(cleaned_ham1$text, FUN=removeWords, words=ham_names))
-cleaned_ham1$text <- unlist(lapply(cleaned_ham1$text, FUN=removeWords, words=shakes_stop))
-cleaned_ham1$title <- "Hamlet"
+cleaned_text1$text <- unlist(lapply(cleaned_text1$text, FUN=removeWords, words=names_full))
+cleaned_text1$text <- unlist(lapply(cleaned_text1$text, FUN=removeWords, words=names_abrv))
+cleaned_text1$text <- unlist(lapply(cleaned_text1$text, FUN=removeWords, words=shakes_stop))
+cleaned_text1$title <- "Hamlet"
 
-full_faus <- gutenberg_download(779)
+Pride <- gutenberg_download(1342)
+Pride$title <- "Pride and Prejudice"
 
-cleaned_faus0 <- full_faus[-c(1:60, 2122:3065),]
-
-cleaned_faus1 <- cleaned_faus0
-
-faus_names <- c("CHORUS", "FAUSTUS", "WAGNER", "GOOD ANGEL", "EVIL ANGEL", "VALDES", "CORNELIUS", "FIRST SCHOLAR", "SECOND SCHOLAR", "MEPHIST", "MEPHISTOPHILIS", "CLOWN", "LUCIFER", "PRIDE", "COVETOUSNESS", "WRATH", "ENVY", "GLUTTONY", "SLOTH", "LECHERY", "POPE", "FIRST FRIAR", "C. OF LOR.", "ROBIN", "RALPH", "VINTNER", "EMPEROR", "KNIGHT", "HORSE-COURSER", "DUKE", "DUCHESS", "THIRD SCHOLAR", "OLD MAN")
-
-cleaned_faus1$text <- unlist(lapply(cleaned_faus1$text, FUN=removeWords, words=faus_names))
-cleaned_faus1$text <- unlist(lapply(cleaned_faus1$text, FUN=removeWords, words=shakes_stop))
-cleaned_faus1$title <- "The Tragical History of Doctor Faustus"
-
-books <- rbind(cleaned_ham1, cleaned_faus1)
+books <- rbind(cleaned_text1, Pride)
 books$document <- 1:nrow(books)
 
 library(tidytext)
@@ -59,7 +51,7 @@ tidy_books %>%
   labs(
     x = NULL, y = "Word count",
     title = "Most frequent words after removing stop words",
-    subtitle = "Words like 'come' and 'shall' occupy similar ranks but other words are quite different"
+    subtitle = "Words like 'no' and 'must' both appear but other words are quite different"
   )  
 
 library(rsample)
@@ -117,7 +109,7 @@ coefs %>%
   labs(
     x = NULL,
     title = "Coefficients that increase/decrease probability the most",
-    subtitle = "A document mentioning Lucifer is unlikely to be written by Shakespeare"
+    subtitle = "A document mentioning madness is unlikely to be written by Jane Austen"
   )
 
 intercept <- coefs %>%
@@ -154,7 +146,7 @@ comment_classes %>%
   ) +
   labs(
     title = "ROC curve for text classification using regularized regression",
-    subtitle = "Predicting whether text was written by William Shakespeare or Christopher Marlowe"
+    subtitle = "Predicting whether text was written by William Shakespeare or Jane Austen"
   )
 
 comment_classes %>%
@@ -163,7 +155,7 @@ comment_classes %>%
 comment_classes %>%
   mutate(
     prediction = case_when(
-      probability > 0.5 ~ "The Tragical History of Doctor Faustus",
+      probability > 0.5 ~ "Pride and Prejudice",
       TRUE ~ "Hamlet"
     ),
     prediction = as.factor(prediction)
@@ -183,7 +175,7 @@ comment_classes %>%
 comment_classes %>%
   filter(
     probability < .3,
-    title == "The Tragical History of Doctor Faustus"
+    title == "Pride and Prejudice"
   ) %>%
   sample_n(10) %>%
   inner_join(books %>%
