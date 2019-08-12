@@ -1,0 +1,510 @@
+---
+title: "Statistically Significant Shakespeare"
+subtitle: "Using Text Mining and Statistical Modeling to Distinguish Shakespeare From Other Authors"
+author: "Johanna Kopecky"
+date: "12 August 2019"
+output:
+  xaringan::moon_reader:
+    lib_dir: libs
+    css: xaringan-themer.css
+widescreen: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE)
+```
+
+```{r xaringan-themer, include = FALSE}
+library(xaringanthemer)
+mono_light(
+  base_color = "#F47B6A",
+  header_font_google = google_font("Josefin Sans"),
+  text_font_google   = google_font("Montserrat", "300", "300i"),
+  code_font_google   = google_font("Droid Mono")
+)
+```
+
+
+```{r, echo=F, fig.width=7, fig.height=4, fig.align='center', message=FALSE, warning=FALSE}
+#load necessary packages
+library(ggformula)
+library(tidyverse)
+library(knitr)
+library(tidyverse)
+library(tidytext)
+library(rsample)
+```
+
+<style>
+
+  .col2 {
+
+    columns: 2 200px;         /* number of columns and width in pixels*/
+
+    -webkit-columns: 2 200px; /* chrome, safari */
+
+    -moz-columns: 2 200px;    /* firefox */
+
+  }
+
+  .col3 {
+
+    columns: 3 100px;
+
+    -webkit-columns: 3 100px;
+
+    -moz-columns: 3 100px;
+
+  }
+
+</style>
+
+
+
+## Overview
+
+
+* Preparing the Data
+* Data from Hamlet
+
+    -Word Frequency
+
+    -Two-Word Phrases
+
+* Comparing Hamlet to Other Works
+
+    -Probability of Identification By Word
+    
+    -ROC Curve
+
+    -Probability of Identification By Line
+
+* Future Work
+
+---
+
+## Preparing the Data
+
+* Download full text from Project Gutenberg using gutenbergr
+* Clean the data
+
+    -Introductions and disclaimers
+
+    -Name abbreviations
+    
+    -Proper nouns
+
+    -"Stop words" of Renaissance nature
+
+* Now the data is how we want it
+
+```{r, echo=FALSE}
+
+knitr::include_graphics("Gutenberg.jpg")
+
+```
+
+---
+
+## Word Frequency of Hamlet
+
+Top 5 words that appear in Hamlet (stop words removed)
+
+```{r, include=FALSE}
+library(gutenbergr)
+full_text <- gutenberg_download(1122)
+
+cleaned_text0 <- full_text[-c(1:279, 1290:1297, 2189:2196, 3313:3320, 3534:3541, 3627:3634, 3930:3937, 3996:3403, 4238:4245, 5145:5152),]
+
+cleaned_text1 <- cleaned_text0
+
+names_full <- c("Denmark", "Elsinore", "Norway", "Claudius", "Marcellus", "Hamlet", "Polonius", "Horatio", "Laertes", "Voltemand", "Cornelius", "Rosencrantz", "Guildenstern", "Osric", "Bernardo", "Francisco", "Reynaldo", "Fortinbras", "Gertrude", "Ophelia")
+names_abrv <- c("Ber", "Fran", "Mar", "Hor", "King", "Queen", "Cor", "Volt", "Laer", "Pol", "Ham", "Oph", "Ghost", "Rey", "Ros", "Guil", "For", "Capt", "Sailor", "Mess", "Clown", "Osr")
+shakes_stop <- c("thee", "thou", "thy", "tis", "Tis", "hath", "hast", "Enter", "twill", "art", "thyself", "ere", "whence", "Exeunt", "twixt", "Exit", "thine", "canst", "o'er", "is't", "on't", "wherefore", "wither", "wilt", "shalt", "shouldst", "wouldst", "nay", "yea", "Ay", "ay", "twere", "thence", "ye", "twas", "prithee", "doth", "th", "hither", "Act", "ACT", "Scene","II", "III", "IV", "V", "VI", "VII", "1")
+
+library(tm)
+cleaned_text1$text <- unlist(lapply(cleaned_text1$text, FUN=removeWords, words=names_full))
+cleaned_text1$text <- unlist(lapply(cleaned_text1$text, FUN=removeWords, words=names_abrv))
+cleaned_text1$text <- unlist(lapply(cleaned_text1$text, FUN=removeWords, words=shakes_stop))
+
+tidy_book <- cleaned_text1 %>%
+  mutate(line = row_number()) %>%
+  unnest_tokens(word, text)
+
+tidy_book %>%
+  count(word, sort = TRUE)
+
+get_stopwords()
+get_stopwords(source = "smart")
+```
+
+```{r, ,echo=FALSE}
+tidy_book %>%
+  anti_join(get_stopwords(source = "smart")) %>%
+  count(word, sort = TRUE) %>%
+  top_n(5) %>%
+  ggplot(aes(fct_reorder(word, n), n)) +
+  geom_col() +
+  coord_flip()
+```
+
+---
+
+## Two-Word Phrases
+
+Top 10 two-word phrases that appear in Hamlet (stop words removed)
+
+```{r, include=FALSE}
+tidy_ngram <- cleaned_text1 %>%
+  unnest_tokens(bigram, text, token = "ngrams", n = 2)
+tidy_ngram
+```
+
+```{r, include=FALSE}
+tidy_ngram %>%
+  count(bigram, sort = TRUE)
+```
+
+```{r, echo=FALSE}
+tidy_ngram %>%
+  separate(bigram, c("word1", "word2"), sep = " ") %>%
+  filter(!word1 %in% stop_words$word,
+         !word2 %in% stop_words$word) %>%
+  count(word1, word2, sort = TRUE)
+```
+
+---
+
+
+
+
+
+
+
+
+
+## Hamlet and Other Works
+
+* Read in Hamlet and Pride and Prejudice
+* Compare word frequency
+
+```{r, include=FALSE, fig.height=1, fig.width=6}
+library(gutenbergr)
+full_text <- gutenberg_download(1122)
+
+cleaned_text0 <- full_text[-c(1:279, 1290:1297, 2189:2196, 3313:3320, 3534:3541, 3627:3634, 3930:3937, 3996:3403, 4238:4245, 5145:5152),]
+
+cleaned_text1 <- cleaned_text0
+
+names_full <- c("Denmark", "Elsinore", "Norway", "Claudius", "Marcellus", "Hamlet", "Polonius", "Horatio", "Laertes", "Voltemand", "Cornelius", "Rosencrantz", "Guildenstern", "Osric", "Bernardo", "Francisco", "Reynaldo", "Fortinbras", "Gertrude", "Ophelia")
+names_abrv <- c("Ber", "Fran", "Mar", "Hor", "King", "Queen", "Cor", "Volt", "Laer", "Pol", "Ham", "Oph", "Ghost", "Rey", "Ros", "Guil", "For", "Capt", "Sailor", "Mess", "Clown", "Osr")
+shakes_stop <- c("thee", "thou", "thy", "tis", "Tis", "hath", "hast", "Enter", "twill", "art", "thyself", "ere", "whence", "Exeunt", "twixt", "Exit", "thine", "canst", "o'er", "is't", "on't", "wherefore", "wither", "wilt", "shalt", "shouldst", "wouldst", "nay", "yea", "Ay", "ay", "twere", "thence", "ye", "twas", "prithee", "doth", "th", "hither", "Act", "ACT", "Scene","II", "III", "IV", "V", "VI", "VII", "1")
+
+library(tm)
+cleaned_text1$text <- unlist(lapply(cleaned_text1$text, FUN=removeWords, words=names_full))
+cleaned_text1$text <- unlist(lapply(cleaned_text1$text, FUN=removeWords, words=names_abrv))
+cleaned_text1$text <- unlist(lapply(cleaned_text1$text, FUN=removeWords, words=shakes_stop))
+cleaned_text1$title <- "Hamlet"
+
+Pride <- gutenberg_download(1342)
+Pride$title <- "Pride and Prejudice"
+
+books <- rbind(cleaned_text1, Pride)
+books$document <- 1:nrow(books)
+```
+
+```{r, include=FALSE}
+tidy_book <- cleaned_text1 %>%
+  mutate(line = row_number()) %>%
+  unnest_tokens(word, text)
+
+tidy_book %>%
+  count(word, sort = TRUE)
+
+get_stopwords()
+get_stopwords(source = "smart")
+
+tidy_books <- books %>%
+  unnest_tokens(word, text) %>%
+  group_by(word) %>%
+  filter(n() > 10) %>%
+  ungroup()
+```
+
+```{r, echo=FALSE}
+tidy_books %>%
+  count(title, word, sort = TRUE) %>%
+  anti_join(get_stopwords()) %>%
+  group_by(title) %>%
+  top_n(5) %>%
+  ungroup() %>%
+  ggplot(aes(reorder_within(word, n, title), n,
+             fill = title
+  )) +
+  geom_col(alpha = 0.8, show.legend = FALSE) +
+  scale_x_reordered() +
+  coord_flip() +
+  facet_wrap(~title, scales = "free") +
+  scale_y_continuous(expand = c(0, 0)) +
+  labs(
+    x = NULL, y = "Word count",
+    title = "Most frequent words after removing stop words",
+    subtitle = "Comparing Hamlet and Pride and Prejudice"
+  )  
+
+```
+
+---
+
+## Statistical Modelling for Identification
+
+We split the data into training and testing. We make a model (Logistic Regression Model with LASSO).
+
+Goal: Given a line of text, estimate the probability that it is from Hamlet.
+
+* Lines from the works
+* Predictor variable: words (whether they appear in the text)
+* Response variable: if from Hamlet
+
+
+```{r, echo=FALSE}
+books_split <- books %>%
+  select(document) %>%
+  initial_split()
+train_data <- training(books_split)
+test_data <- testing(books_split) 
+```
+
+```{r, include = FALSE}
+sparse_words <- tidy_books %>%
+  count(document, word) %>%
+  inner_join(train_data) %>%
+  cast_sparse(document, word, n)
+
+class(sparse_words)
+
+dim(sparse_words)
+
+word_rownames <- as.integer(rownames(sparse_words))
+
+books_joined <- data_frame(document = word_rownames) %>%
+  left_join(books %>%
+              select(document, title))
+
+library(glmnet)
+library(doParallel)
+registerDoParallel(cores = 3)
+
+is_ham <- books_joined$title == "Hamlet"
+model <- cv.glmnet(sparse_words, is_ham,
+                   family = "binomial",
+                   parallel = TRUE, keep = TRUE
+)
+```
+
+---
+
+## Statistical Modelling Cont.
+
+We estimate the regression coefficients associated with each word.
+
+
+```{r, echo=FALSE}
+coefs <- model$glmnet.fit %>%
+  tidy() %>%
+  filter(lambda == model$lambda.1se)
+
+coefs %>%
+  group_by(estimate > 0) %>%
+  top_n(5, abs(estimate)) %>%
+  ungroup() %>%
+  ggplot(aes(fct_reorder(term, estimate), estimate, fill = estimate > 0)) +
+  geom_col(alpha = 0.8, show.legend = FALSE) +
+  coord_flip() +
+  labs(
+    x = NULL,
+    title = "Coefficients that increase/decrease probability the most",
+    subtitle = "Comparing Hamlet and Pride and Prejudice"
+  )
+```
+
+---
+
+## ROC Curve
+
+Now that we are comparing two works and making inferences about them, we want to see if these inferences hold any merit or if we think the machine is merely randomly guessing.
+
+The AUC of this curve is about 0.97.
+
+```{r, echo=FALSE}
+intercept <- coefs %>%
+  filter(term == "(Intercept)") %>%
+  pull(estimate)
+
+classifications <- tidy_books %>%
+  inner_join(test_data) %>%
+  inner_join(coefs, by = c("word" = "term")) %>%
+  group_by(document) %>%
+  summarize(score = sum(estimate)) %>%
+  mutate(probability = plogis(intercept + score))
+
+library(yardstick)
+
+comment_classes <- classifications %>%
+  left_join(books %>%
+              select(title, document), by = "document") %>%
+  mutate(title = as.factor(title))
+
+comment_classes %>%
+  roc_curve(title, probability) %>%
+  ggplot(aes(x = 1 - specificity, y = sensitivity)) +
+  geom_line(
+    color = "midnightblue",
+    size = 1.5
+  ) +
+  geom_abline(
+    lty = 2, alpha = 0.5,
+    color = "gray50",
+    size = 1.2
+  ) +
+  labs(
+    title = "ROC curve for text classification using regularized regression",
+    subtitle = "Predicting whether text was written by William Shakespeare or Jane Austen"
+  )
+```
+
+```{r}
+comment_classes %>%
+  roc_auc(title, probability)
+```
+
+---
+
+## Probability of Identification By Line
+
+With probability for Hamlet > 0.5
+
+```{r, echo=FALSE}
+comment_classes %>%
+  mutate(
+    prediction = case_when(
+      probability > 0.5 ~ "Hamlet",
+      TRUE ~ "Pride and Prejudice"
+    ),
+    prediction = as.factor(prediction)
+  ) %>%
+  conf_mat(title, prediction)
+```
+
+---
+
+## Probability of Identification By Line Cont.
+
+With probability for Hamlet > 0.8
+
+```{r, echo=FALSE}
+comment_classes %>%
+  filter(
+    probability > .8,
+    title == "Hamlet"
+  ) %>%
+  sample_n(1) %>%
+  inner_join(books %>%
+               select(document, text)) %>%
+  select(probability, text)
+```
+
+With probability for Pride and Prejudice < 0.3
+
+```{r, echo=FALSE}
+comment_classes %>%
+  filter(
+    probability < 0.3 ,
+    title == "Pride and Prejudice"
+  ) %>%
+  sample_n(1) %>%
+  inner_join(books %>%
+               select(document, text)) %>%
+  select(probability, text)
+```
+
+With probability for either between 0.45 and 0.55
+
+```{r, echo=FALSE}
+comment_classes %>%
+  filter(
+    probability > .45 & probability < 0.55 ,
+    title == "Pride and Prejudice"
+  ) %>%
+  sample_n(1) %>%
+  inner_join(books %>%
+               select(document, text)) %>%
+  select(probability, text)
+```
+
+---
+
+## Probability of Identification By Line Cont.
+
+Some lines the machine got wrong:
+
+Assigned high chance of being Hamlet but is actually Pride and Prejudice
+```{r, echo=FALSE}
+comment_classes %>%
+  filter(
+    probability > 0.8 ,
+    title == "Pride and Prejudice"
+  ) %>%
+  sample_n(1) %>%
+  inner_join(books %>%
+               select(document, text)) %>%
+  select(probability, text)
+```
+
+Assigned low chance of being Hamlet but is actually Hamlet
+
+```{r, echo=FALSE}
+comment_classes %>%
+  filter(
+    probability < 0.3 ,
+    title == "Hamlet"
+  ) %>%
+  sample_n(1) %>%
+  inner_join(books %>%
+               select(document, text)) %>%
+  select(probability, text)
+```
+
+---
+
+## Future Work
+
+* Compare Hamlet with more similar author (Doctor Faustus)
+* Compare Hamlet/Pride and Prejudice with Hamlet/Doctor Faustus
+* Consider models other than logistic regression with LASSO
+
+
+---
+
+## References/Acknowledgements
+
+* Julia Silge, code and Text Mining in R
+* Professor Andrew Sage, advisor
+* Clare Boothe Luce Scholar Program
+
+---
+
+## Questions?
+
+* Email: johanna.r.kopecky@lawrence.edu
+* Github: ShakespeareAndStats
+
+My questions:
+-Picture didn't work
+-The bottoms of some graphs are getting cut off
+-Every time I run this, I get different quotes. Can I still type them up or should I not?
+-Should I add a slide to introduce the project? Like, what I am doing and why? Do I have enough time for that?
+-Professor Rana idea
+
+
+Take out proper nouns in PP, add # of variables to LASSO slide (make bullet point), say that log reg is for binary and LASSO is for many variables, properly cite Julia's blog and book (use APA), call Silge statistician
