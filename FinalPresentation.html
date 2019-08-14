@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+  <head>
+    <title>Statistically Significant Shakespeare</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Johanna Kopecky" />
+    <meta name="date" content="2019-08-15" />
+    <link rel="stylesheet" href="xaringan-themer.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# Statistically Significant Shakespeare
+## Using Text Mining and Statistical Modeling to Distinguish Shakespeare From Other Authors
+### Johanna Kopecky
+### 15 August 2019
+
+---
+
+
+
+
+
+
+
+
+
+&lt;style&gt;
+
+  .col2 {
+
+    columns: 2 200px;         /* number of columns and width in pixels*/
+
+    -webkit-columns: 2 200px; /* chrome, safari */
+
+    -moz-columns: 2 200px;    /* firefox */
+
+  }
+
+  .col3 {
+
+    columns: 3 100px;
+
+    -webkit-columns: 3 100px;
+
+    -moz-columns: 3 100px;
+
+  }
+
+&lt;/style&gt;
+
+
+
+## Overview
+
+
+* Preparing the Data
+* Data from Hamlet
+
+    -Word Frequency
+
+    -Two-Word Phrases
+
+* Comparing Hamlet to Other Works
+
+    -Probability of Identification By Word
+    
+    -ROC Curve
+
+    -Probability of Identification By Line
+
+* Future Work
+
+---
+
+## Preparing the Data
+
+.pull-left[
+
+* Download full text from Project Gutenberg using gutenbergr
+
+* Clean the data 
+
+    -Introductions and disclaimers
+    
+    -Name abbreviations
+    
+    -Proper nouns
+    
+    -"Stop words" of Renaissance nature
+
+* Now the data is how we want it
+
+]
+.pull-right[
+
+![](Gutenberg.jpg)&lt;!-- --&gt;
+
+]
+
+---
+
+## Word Frequency of Hamlet
+
+Top 5 words that appear in Hamlet (stop words removed)
+
+
+
+![](FinalPresentation_files/figure-html/unnamed-chunk-4-1.png)&lt;!-- --&gt;
+
+---
+
+## Two-Word Phrases
+
+Top 10 two-word phrases that appear in Hamlet (stop words removed)
+
+
+
+
+
+
+```
+## # A tibble: 2,274 x 3
+##    word1     word2       n
+##    &lt;chr&gt;     &lt;chr&gt;   &lt;int&gt;
+##  1 father    lost        4
+##  2 father's  death       4
+##  3 adieu     adieu       3
+##  4 beneath   swear       3
+##  5 bloody    deed        3
+##  6 christian burial      3
+##  7 dead      body        3
+##  8 dear      lord        3
+##  9 drown'd   drown'd     3
+## 10 honour'd  lord        3
+## # ... with 2,264 more rows
+```
+
+---
+
+
+
+
+
+
+
+
+
+## Hamlet and Other Works
+
+* Read in Hamlet and Pride and Prejudice
+* Compare word frequency
+
+
+
+
+
+![](FinalPresentation_files/figure-html/unnamed-chunk-10-1.png)&lt;!-- --&gt;
+
+---
+
+## Statistical Modelling for Identification
+
+We split the data into training and testing. We make a model (Logistic Regression Model with LASSO).
+
+Goal: Given a line of text, estimate the probability that it is from Hamlet.
+
+* Lines from the works
+* Predictor variable: words (whether they appear in the text)
+* Response variable: if from Hamlet
+* Explanatory variables: word frequencies (1283 words)
+
+
+
+
+
+
+---
+
+## Statistical Modelling Cont.
+
+We estimate the regression coefficients associated with each word.
+
+
+![](FinalPresentation_files/figure-html/unnamed-chunk-13-1.png)&lt;!-- --&gt;
+
+---
+
+## ROC Curve
+
+We want to see if these inferences hold any merit or if we think the model is just randomly guessing.
+
+The AUC of this curve is about 0.95.
+
+![](FinalPresentation_files/figure-html/unnamed-chunk-14-1.png)&lt;!-- --&gt;
+
+
+
+---
+
+## Probability of Identification By Line
+
+With probability for Hamlet &gt; 0.5
+
+
+```
+##                      Truth
+## Prediction            Hamlet Pride and Prejudice
+##   Hamlet                 765                 186
+##   Pride and Prejudice    165                2474
+```
+
+---
+
+## Probability of Identification By Line Cont.
+
+High probability of being Hamlet (is Hamlet)
+
+* "Into the madness wherein now he raves," (0.989)
+
+High probability of being Pride and Prejudice (is Pride and Prejudice)
+
+* "In this quiet way, the first fortnight of her visit soon passed away." (0.000476)
+
+Pretty much just randomly guessing (is Pride and Prejudice)
+
+* "or me, either, for that matter. At our time of life it is not so" (0.462)
+
+---
+
+## Probability of Identification By Line Cont.
+
+Some lines the model got wrong:
+
+High probability of being Hamlet (is Pride and Prejudice)
+
+* "no reason. He may live in my memory as the most amiable man of my" (0.818)
+
+High probability of being Pride and Prejudice (is Hamlet)
+
+* "We shall obey, were she ten times our mother. Have you any" (0.0231)
+
+
+---
+
+## Future Work
+
+* Compare Hamlet with more similar author (Doctor Faustus)
+* Compare Hamlet/Pride and Prejudice with Hamlet/Doctor Faustus
+* Consider models other than logistic regression with LASSO
+
+
+---
+
+## References/Acknowledgements
+
+* Julia Silge, code and Text Mining in R
+
+    -Silge, J., &amp; Robinson, D. (2017). Text mining with R: A tidy approach. Sebastopol, CA: OReilly Media.
+
+    -Silge, J. (n.d.). TEXT CLASSIFICATION WITH TIDY DATA PRINCIPLES. Retrieved from https://juliasilge.com/blog/tidy-text-classification/
+
+* Professor Andrew Sage, advisor
+* Clare Boothe Luce Scholar Program
+
+---
+
+## Questions?
+
+* Email: johanna.r.kopecky@lawrence.edu
+* Github: ShakespeareAndStats
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create();
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();</script>
+
+<script>
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
